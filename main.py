@@ -1,75 +1,46 @@
+# main.py
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from data_preprocessing import load_data, clean_data, encode_features, balance_classes
+from model_training import train_model, evaluate_model
+from survival_analysis import plot_kaplan_meier, fit_cox_model
+from feature_importance import plot_feature_importance
+from eda_by_subtypes import compare_subtypes, analyze_treatment_effects
 
-# 1. Load the dataset
-df = pd.read_csv('Breast_Cancer_METABRIC.csv')
+# Step 1: Load and Clean Data
+df = load_data("data/Breast_Cancer_METABRIC.csv")
+df_cleaned = clean_data(df)
 
-# 2. Handle missing values
+# Step 2: Exploratory Data Analysis by Cancer Subtypes
+# Compare mutation count by ER status
+compare_subtypes(df_cleaned, feature="Mutation Count", by="ER Status")
 
-# Calculate missing percentages
-missing_percentage = (df.isnull().sum() / len(df)) * 100
+# Compare tumor size by PR status
+compare_subtypes(df_cleaned, feature="Tumor Size", by="PR Status")
 
-# Drop columns with more than 50% missing values
-columns_to_drop = missing_percentage[missing_percentage > 50].index
-df.drop(columns=columns_to_drop, inplace=True)
+# Analyze treatment effects on relapse status by chemotherapy
+analyze_treatment_effects(df_cleaned, treatment="Chemotherapy", outcome="Relapse Free Status")
 
-# Impute missing values in numerical columns
-numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
-from sklearn.impute import SimpleImputer
+# Step 3: Encode Features and Prepare for Modeling
+X, y = encode_features(df_cleaned)
 
-num_imputer = SimpleImputer(strategy='median')
-df[numerical_cols] = num_imputer.fit_transform(df[numerical_cols])
+# Step 4: Handle Class Imbalance
+X_balanced, y_balanced = balance_classes(X, y)
 
-# Impute missing values in categorical columns
-categorical_cols = df.select_dtypes(include=['object']).columns
-cat_imputer = SimpleImputer(strategy='most_frequent')
-df[categorical_cols] = cat_imputer.fit_transform(df[categorical_cols])
+# Step 5: Split the Data
+X_train, X_test, y_train, y_test = train_test_split(X_balanced, y_balanced, test_size=0.2, random_state=42)
 
-# 3. Encode categorical variables
-from sklearn.preprocessing import LabelEncoder
+# Step 6: Train and Evaluate the Model
+model = train_model(X_train, y_train)
+evaluate_model(model, X_test, y_test)
 
-le = LabelEncoder()
-for col in categorical_cols:
-    df[col] = le.fit_transform(df[col])
+# Step 7: Feature Importance Analysis
+plot_feature_importance(model, X.columns, top_n=10)
 
-# 4. Define features and target
-y = df["Patient's Vital Status"]
-X = df.drop(columns=["Patient ID", "Patient's Vital Status"])
+# Step 8: Survival Analysis
+# Kaplan-Meier Survival Curves by ER Status and Chemotherapy Status
+plot_kaplan_meier(df_cleaned, group_by="ER Status")
+plot_kaplan_meier(df_cleaned, group_by="Chemotherapy")
 
-# 5. Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# 6. Train the model
-model = RandomForestClassifier(random_state=42)
-model.fit(X_train, y_train)
-
-# 7. Evaluate the model
-from sklearn.metrics import roc_auc_score, accuracy_score, classification_report
-
-y_pred = model.predict(X_test)
-
-# For multi-class, use "ovr" (One-vs-Rest) strategy with predict_proba
-roc_auc = roc_auc_score(y_test, model.predict_proba(X_test), multi_class='ovr')
-
-# Print the results
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy:.2f}")
-print(f"ROC AUC Score: {roc_auc:.2f}")
-print("Classification Report:\n", classification_report(y_test, y_pred))
-
-# 8. Feature importance
-import matplotlib.pyplot as plt
-
-importances = model.feature_importances_
-indices = np.argsort(importances)[::-1]
-feature_names = X.columns
-
-plt.figure(figsize=(12, 6))
-plt.title("Feature Importances")
-plt.bar(range(X.shape[1]), importances[indices], align='center')
-plt.xticks(range(X.shape[1]), feature_names[indices], rotation=90)
-plt.tight_layout()
-plt.show()
+# Cox Proportional-Hazards Model
+fit_cox_model(df_cleaned)
