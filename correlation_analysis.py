@@ -1,22 +1,20 @@
 # correlation_analysis.py
+
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def plot_correlation_with_mutation(df, features):
-    """Plots the correlation between mutation count and specified clinical features."""
-    # Checking correlation with numeric features using scatter plots
-    for feature in features:
-        plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=df, x=feature, y='Mutation Count', hue='ER Status')
-        plt.title(f"Correlation between Mutation Count and {feature}")
-        plt.xlabel(feature)
-        plt.ylabel("Mutation Count")
-        plt.legend(title="ER Status")
-        plt.show()
+def plot_correlation_matrix(df, features):
+    """Plots a heatmap of correlations between selected features."""
+    # Selecting only relevant features and applying one-hot encoding to categorical columns
+    corr_df = df[features].dropna()  # Drop rows with NaNs for a cleaner correlation matrix
+    corr_df = pd.get_dummies(corr_df, drop_first=True)  # One-hot encode categorical features
 
-    # Heatmap of correlations for numerical features
-    corr_matrix = df[features + ['Mutation Count']].corr()
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", vmin=-1, vmax=1)
-    plt.title("Correlation Matrix including Mutation Count")
+    # Calculating the correlation matrix for numeric columns
+    corr_matrix = corr_df.corr()
+
+    # Plotting the heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
+    plt.title("Correlation Matrix of Selected Features")
     plt.show()

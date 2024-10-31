@@ -26,6 +26,8 @@ def encode_features(df):
     """Encodes categorical features and prepares the feature matrix and target variable."""
     # Encode the target variable
     df['Relapse Free Status'] = df['Relapse Free Status'].apply(lambda x: 1 if x == 'Recurred' else 0)
+    print("Distribution of Relapse Free Status after encoding:")
+    print(df['Relapse Free Status'].value_counts())
     
     # Select relevant features and encode categorical variables
     features = ['Age at Diagnosis', 'Chemotherapy', 'ER Status', 'PR Status', 
