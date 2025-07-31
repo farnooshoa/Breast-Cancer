@@ -13,7 +13,7 @@ from correlation_analysis import plot_correlation_matrix
 
 
 # Step 1: Load and Clean Data
-df = load_data("Breast_Cancer_METABRIC.csv")  # Replace with your dataset path
+df = load_data("Breast_Cancer_METABRIC.csv")  
 df_cleaned = clean_data(df)
 
 # Step 2: Plot Distribution of Target Variable Before Balancing
